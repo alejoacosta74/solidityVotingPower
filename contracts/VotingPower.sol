@@ -53,10 +53,10 @@ contract VotingPower is ERC20{
     function getDelegatedVotes (checkPoint[] storage checkPoints, uint _percentage) view internal returns (uint) {
         uint currIdx = checkPoints.length-1;
         uint unlockedTokens = checkPoints[currIdx].tokenBalance - checkPoints[currIdx].votesDelegated;
+        if (unlockedTokens == 0) return 0;
         uint votesToDelegate = (checkPoints[currIdx].tokenBalance * _percentage)/ 100;        
         require (unlockedTokens >= votesToDelegate, "Not enough tokens available");
-        if (unlockedTokens == 0) return 0;
-        else return (votesToDelegate);
+        return (votesToDelegate);
     }    
 
     //@dev: helper `updateDelegation` updates votingPower by adding a new checkpoint with the latest delegation
@@ -100,8 +100,8 @@ contract VotingPower is ERC20{
         
     }
 
-    //@dev: `delegate` enable each token holder to delegate a percentage (or all) of his vote power (balance)
-    // to other addresses
+    //@dev: `delegate` enable each token holder to delegate a percentage (or all) of his vote 
+    // power (balance) to other addresses    
     function delegate (address receiver, uint percentage) public {
         if (percentage == 0){
             uint votesRemoved = delegations[msg.sender][receiver] ;
@@ -110,17 +110,18 @@ contract VotingPower is ERC20{
         }
         else {
             uint delegatedVotes = getDelegatedVotes(votingPower[msg.sender], percentage);
-            delegations[msg.sender][receiver] += delegatedVotes;
-            updateDelegation(votingPower[msg.sender], votingPower[receiver], delegatedVotes);
+            if (delegatedVotes > 0){
+                delegations[msg.sender][receiver] += delegatedVotes;
+                updateDelegation(votingPower[msg.sender], votingPower[receiver], delegatedVotes);
+            }
         }            
     }
 
     //@dev: help function `getCheckPoint` searches and returns the corresponding checkPoint 
     // that matches the required block
-    function getCheckPoint (checkPoint[] storage checkpoints, uint _block) view internal returns (checkPoint memory){
-      
+    function getCheckPoint (checkPoint[] storage checkpoints, uint _block) view internal returns (checkPoint memory){      
         if (_block >= checkpoints[checkpoints.length-1].blockId)
-            // The block to search is newer than the latest block for this member. Let´s return the last checkpoint available
+            // The block to search is newer than the latest block for this member. Let´s return the lastest checkpoint available
             return checkpoints[checkpoints.length-1];
         if (_block < checkpoints[0].blockId){
             checkPoint memory c;
@@ -143,7 +144,7 @@ contract VotingPower is ERC20{
         return checkpoints[min];
     }
 
-    //@dev: `balanceOfAt`
+    //@dev: `balanceOfAt` returns the balance of an address for a specific block in the past
     function balanceOfAt (address _member, uint _block) public view returns (uint) {
         uint length = votingPower[_member].length;
         if (length == 0) return 69;
@@ -154,7 +155,7 @@ contract VotingPower is ERC20{
 
     }
 
-    //@dev: `votePowerOfAt`
+    //@dev: `votePowerOfAt` returns the vote power of a specific address in a specific block
     function votePowerOfAt (address _member, uint _block) public view returns (uint) {
         uint length = votingPower[_member].length;
         if (length == 0) return 69;
@@ -164,25 +165,13 @@ contract VotingPower is ERC20{
             return _votingPower ;            
         }
     }
-
-     //@dev: testing
-    function calculateDelegatedVotes (uint balance, uint delegated , uint _percentage) pure public returns (uint) {        
-        uint unlockedTokens = balance - delegated;
-        if (unlockedTokens == 0) return 0;
-        else return ((balance * _percentage)/100);
-    }
-
-    //@dev: testing 
-    function checkPointLegthNow(address member) public view returns (uint){
-        return votingPower[member].length;
-    }
     
-    //@dev: testing 
+    //@dev: `getCurrentBlock()` used for testing in Mocha
     function getCurrentBlock() public view returns (uint){
         return block.number;
     }
     
-    //@dev: testing 
+    //@dev: `memberBlockNow` used for testing in Mocha
     function memberBlockNow(address member) public view returns (uint){
         if (votingPower[member].length == 0){
             return uint(0);
@@ -193,7 +182,7 @@ contract VotingPower is ERC20{
         }
     }
     
-    //@dev: testing 
+    //@dev: `votePowerNow` used for testing in Mocha
     function votePowerNow (address _member) public view returns (uint){
         if (votingPower[_member].length == 0){
             return 0;
@@ -207,7 +196,7 @@ contract VotingPower is ERC20{
         }
     }
  
-     //@dev: testing 
+    //@dev: `receivedVotesNow` used for testing in Mocha
     function receivedVotesNow (address _member) public view returns (uint){
         if (votingPower[_member].length == 0){
             return 0;
@@ -219,8 +208,8 @@ contract VotingPower is ERC20{
         }
         
     }
-    
-    //@dev: testing 
+
+    //@dev: `delegatedVotesNow` used for testing in Mocha
     function delegatedVotesNow (address _member) public view returns (uint){
         if (votingPower[_member].length == 0){
             return 0;
