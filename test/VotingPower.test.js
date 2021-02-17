@@ -12,58 +12,36 @@ function tokens(n){
 }
 
 
-contract ('Testsuite: Flare use cases', ([deployer, Bob, Lucy, Ed, Alice])=>{
+contract ('Testsuite: Flare use cases', ([deployer, Bob, Lucy, Ed, Alice, Charly, Danny, Frank])=>{
     let contract;    
-    let received, removed ,  block , block1, block2, block3, block4, block5, block6, block7, percent, mapPercent, block10, block11, block12, block13, vp, vp1, vp2, balance;
+    let block1, block2, block3, block4, block5, block6, block7, vp1, vp2, balance, delegated;
     
     before (async ()=>{               
         contract = await votingPower.new('1000');        
 
         await contract.transfer(Bob, '10', {from : deployer});        
         block1 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
         
         await contract.delegate(Lucy, '50', {from : Bob});        
         block2 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
         
         await contract.transfer(Bob, '10', {from : deployer});        
         block3 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
 
         await contract.delegate(Ed, '25', {from : Bob});       
         block4 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
 
         await contract.delegate(Alice, '25', {from : Bob});       
         block5 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
 
         await contract.transfer(Bob, '20', {from : deployer});        
         block6 = await contract.getCurrentBlock();                      
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
 
         await contract.delegate(Lucy, '0', {from : Bob});
         block7 = await contract.getCurrentBlock();
-        received = await contract.receivedVotesNow(Lucy);
-        removed = await contract.votesRemovedNow(Bob, Lucy);
-        console.log('On Block1: Lucy received: ' + received + '  Lucy will be removed: ' + removed );
-
     })
 
-    describe ('\n Describe: Testing -> VotePowerOfAt and BalanceOfAt with Lucy\n', async ()=> {        
+    describe ('\n Describe: Testing -> VotePowerOfAt and BalanceOfAt', async ()=> {        
         it ('validate: votePower for bob: 10 and Lucy: 0', async ()=>{
             balance = await contract.balanceOfAt(Bob, block1);            
             vp1 = await contract.votePowerOfAt(Lucy, block1);
@@ -125,5 +103,18 @@ contract ('Testsuite: Flare use cases', ([deployer, Bob, Lucy, Ed, Alice])=>{
             vp4 = await contract.votePowerOfAt(Alice, block7);    
             assert.equal(vp4.toString(), '10', 'Alice VotePower should be 10');
         })                
+
+        it('Fails when owner tries to delegate to more than 5 people', async ()=> {
+            //Bob is already delegating to Ed and Alice            
+            await contract.delegate(Charly, '10', {from: Bob});
+            await contract.delegate(Danny, '10', {from: Bob});
+            await contract.delegate(Frank, '10', {from: Bob});
+            await contract.delegate(Lucy, '10', {from: Bob}).should.be.rejected;
+        })
+
+        it('Fails when owner tries to delegate more than 100%', async ()=> {
+            await contract.delegate(Lucy, '90', {from: Bob}).should.be.rejected;
+        })
+
     })
 })
